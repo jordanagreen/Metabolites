@@ -1,4 +1,5 @@
 get_correction_factor <- function(qcs, from, to, i){
+  # print(class(qcs))
   regression <- lm(qcs[from:to] ~ seq(to, from))
   a <- regression$coefficients[[2]]
   b <- regression$coefficients[[1]]
@@ -15,6 +16,7 @@ sys_correct <- function(datum, between, i, qcs, w){
 
 normalize <- function(data, qcs, betweens, w){
   indices = seq(1, length(data))
+  # print(paste(length(data), length(betweens), length(indices), length(qcs)))
   normalized <- mapply(sys_correct, data, betweens, indices, MoreArgs=list(qcs=qcs, w=w))
   return(normalized)
 }
@@ -23,8 +25,28 @@ test <- function(){
   data = c(75588.027, 53975.495, 60447.731, 54868.72, 58906.312, 48355.136, 40928.813, 52075.124, 55739.152, 48670.014, 55898.849, 56737.831, 58045.573, 60157.308, 53678.8, 40172.174, 57523.773, 63898.54, 71065.063, 59448.611, 37384.215, 43648.259, 54229.695, 57147.401, 50125.938, 59994.513, 49630.787, 59574.01, 56680.876, 62398.688, 62956.078, 55525.867, 56782.039, 98006.639, 46922.031, 58283.085, 46251.628, 65470.091, 41947.981, 46949.598, 46407.903, 52911.445, 40334.044, 49378.95, 54045.071, 41364.974, 52302.622, 40377.811, 36694.679, 32987.568, 55877.166, 46611.173, 38083.767, 127395.572, 37847.716, 36601.44, 38912.608, 41434.131, 35997.429, 39978.552, 56506.005, 30506.393, 42526.58, 35663.373, 30184.702, 34305.384, 48964.88, 34280.807, 33220.441, 38813.413, 42389.229, 50748.254, 23767.992, 32733.284, 35072.645, 45652.004, 38747.523, 47830.187)
   qcs = c(52353.668, 55059.448, 51018.616, 51765.406, 44403.86, 52485.862, 59067.165, 50456.505, 41944.447, 46987.491)
   betweens = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9)
-  normalized = normalize(data, qcs, betweens, 4)
+  normalized = normalize(data, qcs, betweens, 2)
   print(normalized)
   plot(normalized)
   return(normalized)
+}
+
+testdata <- function(){
+  dataset <- read.csv("dataset.csv", header=F)
+  qcstart <- 80
+  betweens = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9)
+  
+  for (r in 1:nrow(dataset)){
+    row <- dataset[r,]
+    # print(row[3:qcstart-1])
+    data <- as.numeric(row[3:qcstart-1])
+    # print(data)
+    qcs <- as.numeric(row[qcstart:length(row)])
+    png(filename=paste("img/", r, ".png", sep=""))
+    par(mfrow = c(2, 1))
+    plot(data, ylab="Intensity", xlab="Sample", main=paste("Original-", r, sep=""))
+    plot(normalize(data, qcs, betweens, 2), main=paste("Normalized-", r, sep=""), ylab="Intensity", xlab="Sample")
+    # print("done")
+    dev.off()
+  }
 }
