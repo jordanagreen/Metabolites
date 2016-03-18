@@ -1,13 +1,17 @@
+betweens = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9)
+dataset <- read.csv("dataset.csv", header=F)
+qcstart <- 80
+qcpositions <- c(0, 10, 20, 30, 34, 38, 48, 58, 68, 78)
+
 testrow <- function(r){
-  dataset <- read.csv("dataset.csv", header=F)
-  qcstart <- 80
-  betweens = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9)
+  
+  # betweens = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9)
   row <- dataset[r,]
   data <- as.numeric(row[3:qcstart-1])
   qcs <- as.numeric(row[qcstart:length(row)])
-  par(mfrow = c(1,2))
+  par(mfrow = c(2, 1))
   plot(data, ylab="Intensity", xlab="Sample", main=paste("Original-", r, sep=""))
-  plot(normalize(data, qcs, betweens, 2), main=paste("Normalized-", r, sep=""), ylab="Intensity", xlab="Sample")
+  plot(normalize(data, qcs, betweens, qcpositions, 2), main=paste("Normalized-", r, sep=""), ylab="Intensity", xlab="Sample")
 }
 
 test <- function(){
@@ -20,28 +24,50 @@ test <- function(){
   return(normalized)
 }
 
-testdata <- function(){
+plotAndSaveAll <- function(n){
   dataset <- read.csv("dataset.csv", header=F)
-  lapply(1:nrow(dataset), plot_and_save)
+  lapply(1:nrow(dataset), plotAndSave, n)
 }
 
-plot_and_save <- function(r){
+plotAndSave <- function(r, n){
   row <- dataset[r,]
   qcstart <- 80
+  
+  data <- as.numeric(row[3:qcstart-1])
+  # print(data)
+  qcs <- as.numeric(row[qcstart:length(row)])
+  png(filename=paste(n, "/", r, ".png", sep=""))
+  par(mfrow = c(2, 1))
+  # plot(data, ylab="Intensity", xlab="Sample", main=paste("Original-", r, sep=""))
+  # points( c(0, 10, 20, 30, 30, 38, 48, 58, 68, 78), qcs, pch=21, bg="red")
+  plot(qcpositions, qcs, pch=21, bg="red", main=paste("Original-", r, sep=""), ylab="Intensity", xlab="Sample")
+  points(data)
+  normalized <- normalize(data, qcs, betweens, qcpositions, 2)
+  plot(normalized, main=paste("Normalized-", r, sep=""), ylab="Intensity", xlab="Sample")
+  # plot(qcs, main=paste("QC-",r,sep=""), xlab="QC", ylab="Intensity")
+  
+  # print("done")
+  dev.off()
+}
+
+only_plot <- function(r){
+  row <- dataset[r,]
+  # qcstart <- 80
   betweens = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9)
   
   data <- as.numeric(row[3:qcstart-1])
   # print(data)
   qcs <- as.numeric(row[qcstart:length(row)])
-  png(filename=paste("imgt/", r, ".png", sep=""))
-  par(mfrow = c(2, 1))
-  # plot(data, ylab="Intensity", xlab="Sample", main=paste("Original-", r, sep=""))
-  # points( c(0, 10, 20, 30, 30, 38, 48, 58, 68, 78), qcs, pch=21, bg="red")
-  plot(c(0, 10, 20, 30, 30, 38, 48, 58, 68, 78), qcs, pch=21, bg="red", main=paste("Original-", r, sep=""), ylab="Intensity", xlab="Sample")
-  points(data)
-  plot(normalize(data, qcs, betweens, 2), main=paste("Normalized-", r, sep=""), ylab="Intensity", xlab="Sample")
+  plot(data, ylab="Intensity", xlab="Sample", main=paste("Original-", r, sep=""))
+
+  # plot(normalize(data, qcs, betweens, 2), main=paste("Normalized-", r, sep=""), ylab="Intensity", xlab="Sample")
   # plot(qcs, main=paste("QC-",r,sep=""), xlab="QC", ylab="Intensity")
   
   # print("done")
-  dev.off()
+  # dev.off()
+}
+
+test_correct_qcs <- function(r){
+  row <- dataset[r,]
+  qcs <- as.numeric(row[qcstart:length(row)])
 }
