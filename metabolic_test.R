@@ -68,6 +68,18 @@ only_plot <- function(r){
 }
 
 test_correct_qcs <- function(r){
+  par(mfrow = c(1, 1))
   row <- dataset[r,]
+  data <- as.numeric(row[3:qcstart-1])
   qcs <- as.numeric(row[qcstart:length(row)])
+  # plot(qcs)
+  corrected <- correct_qcs(qcs, qcpositions, 4)
+  # abline(lm(qcs[from:to]~positions[from:to]))
+  # print(qcs)
+  # print(corrected)
+  plot(qcpositions, qcs, col="red", pch=19)
+  points(qcpositions, corrected, col="blue", pch=19)
+  points(data)
+  abline(lm(qcs~qcpositions), col="red")
+  abline(lm(corrected~qcpositions), col="blue")
 }
