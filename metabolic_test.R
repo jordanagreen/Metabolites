@@ -1,17 +1,22 @@
 betweens = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9)
 dataset <- read.csv("dataset.csv", header=F)
 qcstart <- 80
-qcpositions <- c(0, 10, 20, 30, 34, 38, 48, 58, 68, 78)
+qcpositions <- c(1, 12, 23, 34, 43, 44, 55, 66, 77, 88)
+sample_positions <- c(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 35, 36, 37, 38, 39, 40, 41, 42, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87)
+combined_dataset <- read.csv("combined-dataset.csv", header=F)
+
+get_data_and_qcs <- function(r){
+  row <- combined_dataset[r,]
+  return(row[2:length(row)])
+}
 
 testrow <- function(r){
-  
-  # betweens = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9)
   row <- dataset[r,]
   data <- as.numeric(row[3:qcstart-1])
   qcs <- as.numeric(row[qcstart:length(row)])
   par(mfrow = c(2, 1))
-  plot(data, ylab="Intensity", xlab="Sample", main=paste("Original-", r, sep=""))
-  plot(normalize(data, qcs, betweens, qcpositions, 2), main=paste("Normalized-", r, sep=""), ylab="Intensity", xlab="Sample")
+  plot(sample_positions, data, ylab="Intensity", xlab="Sample", main=paste("Original-", r, sep=""))
+  plot(normalize(data, qcs, betweens, qcpositions, sample_positions, 2), main=paste("Normalized-", r, sep=""), ylab="Intensity", xlab="Sample")
 }
 
 test <- function(){
@@ -41,9 +46,9 @@ plotAndSave <- function(r, n){
   # plot(data, ylab="Intensity", xlab="Sample", main=paste("Original-", r, sep=""))
   # points( c(0, 10, 20, 30, 30, 38, 48, 58, 68, 78), qcs, pch=21, bg="red")
   plot(qcpositions, qcs, pch=21, bg="red", main=paste("Original-", r, sep=""), ylab="Intensity", xlab="Sample")
-  points(data)
-  normalized <- normalize(data, qcs, betweens, qcpositions, 2)
-  plot(normalized, main=paste("Normalized-", r, sep=""), ylab="Intensity", xlab="Sample")
+  points(sample_positions, data)
+  normalized <- normalize(data, qcs, betweens, qcpositions, sample_positions, 2)
+  plot(sample_positions, normalized, main=paste("Normalized-", r, sep=""), ylab="Intensity", xlab="Sample")
   # plot(qcs, main=paste("QC-",r,sep=""), xlab="QC", ylab="Intensity")
   
   # print("done")
@@ -51,14 +56,15 @@ plotAndSave <- function(r, n){
 }
 
 only_plot <- function(r){
+  par(mfrow = c(1, 1))
   row <- dataset[r,]
   # qcstart <- 80
-  betweens = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9)
+  # betweens = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9)
   
   data <- as.numeric(row[3:qcstart-1])
   # print(data)
   qcs <- as.numeric(row[qcstart:length(row)])
-  plot(data, ylab="Intensity", xlab="Sample", main=paste("Original-", r, sep=""))
+  plot(sample_positions, data, ylab="Intensity", xlab="Sample", main=paste("Original-", r, sep=""))
 
   # plot(normalize(data, qcs, betweens, 2), main=paste("Normalized-", r, sep=""), ylab="Intensity", xlab="Sample")
   # plot(qcs, main=paste("QC-",r,sep=""), xlab="QC", ylab="Intensity")
@@ -68,18 +74,61 @@ only_plot <- function(r){
 }
 
 test_correct_qcs <- function(r){
+  w <- 4
+  par(mfrow = c(1, 1))
+  
+  png(filename=paste("img-qcswithsamples/", r, ".png", sep=""))
+  
+  row <- dataset[r,]
+  data <- as.numeric(row[3:qcstart-1])
+  qcs <- as.numeric(row[qcstart:length(row)])
+  # corrected <- correct_qcs(qcs, qcpositions, 4)
+  c_row <- combined_dataset[r,]
+  combined <- as.numeric(c_row[2:length(c_row)])
+  corrected <- correct_qcs(combined, qcpositions, w)
+  plot(sample_positions, data,  ylab="Intensity", xlab="Sample", main=paste("Metabolite", r))
+  points(qcpositions, corrected, col="blue", pch=19)
+  points(qcpositions, qcs, col="red", pch=19)
+  abline(lm(qcs~qcpositions), col="red")
+  abline(lm(corrected~qcpositions), col="blue")
+  
+  dev.off()
+}
+
+test_plot_with_corrected_qcs <- function(r){
+  w <- 3
   par(mfrow = c(1, 1))
   row <- dataset[r,]
   data <- as.numeric(row[3:qcstart-1])
   qcs <- as.numeric(row[qcstart:length(row)])
-  # plot(qcs)
-  corrected <- correct_qcs(qcs, qcpositions, 4)
-  # abline(lm(qcs[from:to]~positions[from:to]))
-  # print(qcs)
-  # print(corrected)
-  plot(qcpositions, qcs, col="red", pch=19)
-  points(qcpositions, corrected, col="blue", pch=19)
-  points(data)
-  abline(lm(qcs~qcpositions), col="red")
-  abline(lm(corrected~qcpositions), col="blue")
+  c_row <- combined_dataset[r,]
+  combined <- as.numeric(c_row[2:length(c_row)])
+  corrected <- correct_qcs(combined, qcpositions, w)
+  normalized <- normalize(data, qcs, betweens, qcpositions, sample_positions, w)
+  corrected_normalized <- normalize(data, corrected, betweens, qcpositions, sample_positions, w)
+  plot(normalized, col="red", pch=19)
+  points(corrected_normalized, col="blue", pch=19)
+}
+
+
+test_corrected_ratio <- function(r){
+  row <- dataset[r,]
+  data <- as.numeric(row[3:qcstart-1])
+  qcs <- as.numeric(row[qcstart:length(row)])
+  c_row <- combined_dataset[r,]
+  combined <- as.numeric(c_row[2:length(c_row)])
+  corrected <- correct_qcs(combined, qcpositions, 3)
+  ratios <- numeric(length(qcs)-1)
+  for (i in 1:length(ratios)) {
+    ratios[i] <- corrected[i]/corrected[i+1]
+  }
+  return(ratios)
+}
+
+test_ratios <- function(){
+  ratios <- lapply(1:nrow(dataset), test_corrected_ratio)
+  df <- data.frame(matrix(unlist(ratios), nrow=length(ratios), byrow=T))
+  # results <- table(ratios)
+  write.csv(df, file="ratios_with_samples.csv")
+  # return(df)
 }
