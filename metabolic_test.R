@@ -74,36 +74,37 @@ only_plot <- function(r){
 }
 
 test_correct_qcs <- function(r){
-  w <- 4
+  w <- 5
   par(mfrow = c(1, 1))
   
-  png(filename=paste("img-qcswithsamples/", r, ".png", sep=""))
+  # png(filename=paste("img-qcswithsamples/", r, ".png", sep=""))
   
   row <- dataset[r,]
   data <- as.numeric(row[3:qcstart-1])
   qcs <- as.numeric(row[qcstart:length(row)])
-  # corrected <- correct_qcs(qcs, qcpositions, 4)
-  c_row <- combined_dataset[r,]
-  combined <- as.numeric(c_row[2:length(c_row)])
-  corrected <- correct_qcs(combined, qcpositions, w)
+  corrected <- correct_qcs(qcs, qcpositions, 4)
+  # c_row <- combined_dataset[r,]
+  # combined <- as.numeric(c_row[2:length(c_row)])
+  # corrected <- correct_qcs(combined, qcpositions, w)
   plot(sample_positions, data,  ylab="Intensity", xlab="Sample", main=paste("Metabolite", r))
   points(qcpositions, corrected, col="blue", pch=19)
   points(qcpositions, qcs, col="red", pch=19)
   abline(lm(qcs~qcpositions), col="red")
   abline(lm(corrected~qcpositions), col="blue")
   
-  dev.off()
+  # dev.off()
 }
 
 test_plot_with_corrected_qcs <- function(r){
-  w <- 3
+  w <- 5
   par(mfrow = c(1, 1))
   row <- dataset[r,]
   data <- as.numeric(row[3:qcstart-1])
   qcs <- as.numeric(row[qcstart:length(row)])
-  c_row <- combined_dataset[r,]
-  combined <- as.numeric(c_row[2:length(c_row)])
-  corrected <- correct_qcs(combined, qcpositions, w)
+  # c_row <- combined_dataset[r,]
+  # combined <- as.numeric(c_row[2:length(c_row)])
+  # corrected <- correct_qcs(combined, qcpositions, w)
+  corrected <- correct_qcs(qcs, qcpositions, w)
   normalized <- normalize(data, qcs, betweens, qcpositions, sample_positions, w)
   corrected_normalized <- normalize(data, corrected, betweens, qcpositions, sample_positions, w)
   plot(normalized, col="red", pch=19)
@@ -115,9 +116,10 @@ test_corrected_ratio <- function(r){
   row <- dataset[r,]
   data <- as.numeric(row[3:qcstart-1])
   qcs <- as.numeric(row[qcstart:length(row)])
-  c_row <- combined_dataset[r,]
-  combined <- as.numeric(c_row[2:length(c_row)])
-  corrected <- correct_qcs(combined, qcpositions, 3)
+  # c_row <- combined_dataset[r,]
+  # combined <- as.numeric(c_row[2:length(c_row)])
+  # corrected <- correct_qcs(combined, qcpositions, 3)
+  corrected <- correct_qcs(qcs, qcpositions, w)
   ratios <- numeric(length(qcs)-1)
   for (i in 1:length(ratios)) {
     ratios[i] <- corrected[i]/corrected[i+1]
@@ -130,5 +132,130 @@ test_ratios <- function(){
   df <- data.frame(matrix(unlist(ratios), nrow=length(ratios), byrow=T))
   # results <- table(ratios)
   write.csv(df, file="ratios_with_samples.csv")
-  # return(df)
+  return(df)
+}
+
+test_rsd <- function(r){
+  row <- dataset[r,]
+  qcs <- as.numeric(row[qcstart:length(row)])
+  return(relative_standard_deviation(qcs))
+}
+
+graph_qc_correction <- function(r){
+  row <- dataset[r,]
+  data <- as.numeric(row[3:qcstart-1])
+  qcs <- as.numeric(row[qcstart:length(row)])
+  plot(qcpositions, qcs, col="black", pch=19)
+  points(qcpositions, gross_correct(qcs), col="red", pch=19)
+  points(qcpositions, correct_qcs(qcs, qcpositions, 5), col="green", pch=19)
+  points(qcpositions, correct_qcs(gross_correct(qcs), qcpositions, 5), col="blue", pch=19)
+  points(sample_positions, data)
+}
+
+graph_rsds <- function(){
+  w <- 3
+  # rsds <- apply(dataset, 1, function(x){return(relative_standard_deviation(x[2:length(x)]))})
+  rsds <- sapply(1:nrow(dataset), function(r){
+    row <- dataset[r,]
+    data <- as.numeric(row[3:qcstart-1])
+    qcs <- as.numeric(row[qcstart:length(row)])
+    # c_row <- combined_dataset[r,]
+    # combined <- as.numeric(c_row[2:length(c_row)])
+    # corrected <- correct_qcs(combined, qcpositions, w)
+    corrected <- correct_qcs(qcs, qcpositions, w)
+    return(relative_standard_deviation(corrected))
+    })
+  # print(rsds)
+  barplot(rsds, main="Relative Standard Deviations", xlab="Sample", ylab="RSD", ylim=c(0,2))
+  abline(a=.2, b=0, col="red")
+}
+
+test_normalize_with_gross_correction <- function(r){
+  w <- 3
+  n <- 5
+  par(mfrow = c(1, 1))
+  row <- dataset[r,]
+  data <- as.numeric(row[3:qcstart-1])
+  qcs <- as.numeric(row[qcstart:length(row)])
+  # c_row <- combined_dataset[r,]
+  # combined <- as.numeric(c_row[2:length(c_row)])
+  # corrected <- qcs
+  corrected <- gross_correct(qcs)
+  lapply(1:n, function(i) {
+    corrected <<- gross_correct(corrected)
+    # print(i)
+    # print(corrected)
+    })
+  
+  # combined_with_corrected_qcs <- sapply(1:length(combined), function(i){
+  #   if (i %in% qcpositions){
+  #     return(corrected[match(i, qcpositions)])
+  #   }
+  #   else return(data[i])
+  # })
+  corrected <- correct_qcs(qcs, qcpositions, 5)
+  
+  normalized <- normalize(data, qcs, betweens, qcpositions, sample_positions, w)
+  corrected_normalized <- normalize(data, corrected, betweens, qcpositions, sample_positions, w)
+  par(mfrow=c(1,1))
+  nrsd <- relative_standard_deviation(normalized)
+  cnrsd <- relative_standard_deviation(corrected_normalized)
+  # print(paste(nrsd, cnrsd))
+  # png(filename=paste("img-gross/", r, ".png", sep=""))
+  # plot(normalized, col="red", pch=19, main=paste(r, "RSD", nrsd, "->", cnrsd))
+  # points(corrected_normalized, col="blue", pch=19)
+  # dev.off()
+  return(cnrsd <= nrsd)
+}
+
+test_normalize_with_gross_correction_all <- function(){
+  fixed <- lapply(1:nrow(dataset), function(r) test_normalize_with_gross_correction(r))
+  print(paste(sum(unlist(fixed)), "/", length(fixed)))
+}
+
+test_gross_correction_rsds <- function(){
+  n <- 10
+  all_qcs <- lapply(1:nrow(dataset), function(r){
+    row <- dataset[r,]
+    qcs <- as.numeric(row[qcstart:length(row)])
+    return(qcs)
+  })
+  lapply(1:n, function(i){
+    all_qcs <<- lapply(all_qcs, function(qcs){
+      return(gross_correct(qcs))
+    })
+    rsds <- sapply(all_qcs, function(qcs){
+      return(relative_standard_deviation(qcs))
+    })
+    # print(rsds[3])
+    # barplot(rsds)
+    # barplot(rsds, main=paste("Correction", i, "-", "Total RSD < .2:", sum(rsds<.2)), xlab="Sample", ylab="RSD", ylim=c(0,2))
+    # abline(a=.2, b=0, col="red")
+  })
+  print("done")
+}
+
+test_gross_correction_ratios <- function(){
+  n <- 20
+  ratios <- lapply(1:nrow(dataset), function(r){
+    row <- dataset[r,]
+    qcs <- as.numeric(row[qcstart:length(row)])
+    return(get_ratios(qcs))
+  })
+  corrected_ratios <- lapply(1:nrow(dataset), function(r){
+    row <- dataset[r,]
+    data <- as.numeric(row[3:qcstart-1])
+    qcs <- as.numeric(row[qcstart:length(row)])
+    corrected_qcs <- qcs
+    for(i in 1:n){
+      corrected_qcs <- gross_correct(corrected_qcs)
+    }
+    corrected_qcs <- correct_qcs(corrected_qcs, qcpositions, 5)
+    return(get_ratios(corrected_qcs))
+  })
+  fixed <- mapply(function(r, cr) return(abs(1-cr) <= abs(1-r)), ratios, corrected_ratios)
+  print(paste(sum(unlist(fixed)), "/", length(fixed)))
+  worse <- mapply(function(r, cr) return(abs(1-cr) > abs(1-r)), ratios, corrected_ratios)
+  print(paste(sum(unlist(worse)), "/", length(worse)))
+  
 }
