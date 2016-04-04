@@ -1,7 +1,7 @@
 betweens = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9)
 dataset <- read.csv("dataset.csv", header=F)
 qcstart <- 80
-qcpositions <- c(1, 12, 23, 34, 43, 44, 55, 66, 77, 88)
+qc_positions <- c(1, 12, 23, 34, 43, 44, 55, 66, 77, 88)
 sample_positions <- c(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 35, 36, 37, 38, 39, 40, 41, 42, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87)
 combined_dataset <- read.csv("combined-dataset.csv", header=F)
 
@@ -16,7 +16,7 @@ testrow <- function(r){
   qcs <- as.numeric(row[qcstart:length(row)])
   par(mfrow = c(2, 1))
   plot(sample_positions, data, ylab="Intensity", xlab="Sample", main=paste("Original-", r, sep=""))
-  plot(normalize(data, qcs, betweens, qcpositions, sample_positions, 2), main=paste("Normalized-", r, sep=""), ylab="Intensity", xlab="Sample")
+  plot(normalize(data, qcs, betweens, qc_positions, sample_positions, 2), main=paste("Normalized-", r, sep=""), ylab="Intensity", xlab="Sample")
 }
 
 test <- function(){
@@ -45,9 +45,9 @@ plotAndSave <- function(r, n){
   par(mfrow = c(2, 1))
   # plot(data, ylab="Intensity", xlab="Sample", main=paste("Original-", r, sep=""))
   # points( c(0, 10, 20, 30, 30, 38, 48, 58, 68, 78), qcs, pch=21, bg="red")
-  plot(qcpositions, qcs, pch=21, bg="red", main=paste("Original-", r, sep=""), ylab="Intensity", xlab="Sample")
+  plot(qc_positions, qcs, pch=21, bg="red", main=paste("Original-", r, sep=""), ylab="Intensity", xlab="Sample")
   points(sample_positions, data)
-  normalized <- normalize(data, qcs, betweens, qcpositions, sample_positions, 2)
+  normalized <- normalize(data, qcs, betweens, qc_positions, sample_positions, 2)
   plot(sample_positions, normalized, main=paste("Normalized-", r, sep=""), ylab="Intensity", xlab="Sample")
   # plot(qcs, main=paste("QC-",r,sep=""), xlab="QC", ylab="Intensity")
   
@@ -82,15 +82,15 @@ test_correct_qcs <- function(r){
   row <- dataset[r,]
   data <- as.numeric(row[3:qcstart-1])
   qcs <- as.numeric(row[qcstart:length(row)])
-  corrected <- correct_qcs(qcs, qcpositions, 4)
+  corrected <- correct_qcs(qcs, qc_positions, 4)
   # c_row <- combined_dataset[r,]
   # combined <- as.numeric(c_row[2:length(c_row)])
-  # corrected <- correct_qcs(combined, qcpositions, w)
+  # corrected <- correct_qcs(combined, qc_positions, w)
   plot(sample_positions, data,  ylab="Intensity", xlab="Sample", main=paste("Metabolite", r))
-  points(qcpositions, corrected, col="blue", pch=19)
-  points(qcpositions, qcs, col="red", pch=19)
-  abline(lm(qcs~qcpositions), col="red")
-  abline(lm(corrected~qcpositions), col="blue")
+  points(qc_positions, corrected, col="blue", pch=19)
+  points(qc_positions, qcs, col="red", pch=19)
+  abline(lm(qcs~qc_positions), col="red")
+  abline(lm(corrected~qc_positions), col="blue")
   
   # dev.off()
 }
@@ -103,10 +103,10 @@ test_plot_with_corrected_qcs <- function(r){
   qcs <- as.numeric(row[qcstart:length(row)])
   # c_row <- combined_dataset[r,]
   # combined <- as.numeric(c_row[2:length(c_row)])
-  # corrected <- correct_qcs(combined, qcpositions, w)
-  corrected <- correct_qcs(qcs, qcpositions, w)
-  normalized <- normalize(data, qcs, betweens, qcpositions, sample_positions, w)
-  corrected_normalized <- normalize(data, corrected, betweens, qcpositions, sample_positions, w)
+  # corrected <- correct_qcs(combined, qc_positions, w)
+  corrected <- correct_qcs(qcs, qc_positions, w)
+  normalized <- normalize(data, qcs, betweens, qc_positions, sample_positions, w)
+  corrected_normalized <- normalize(data, corrected, betweens, qc_positions, sample_positions, w)
   plot(normalized, col="red", pch=19)
   points(corrected_normalized, col="blue", pch=19)
 }
@@ -118,8 +118,8 @@ test_corrected_ratio <- function(r){
   qcs <- as.numeric(row[qcstart:length(row)])
   # c_row <- combined_dataset[r,]
   # combined <- as.numeric(c_row[2:length(c_row)])
-  # corrected <- correct_qcs(combined, qcpositions, 3)
-  corrected <- correct_qcs(qcs, qcpositions, w)
+  # corrected <- correct_qcs(combined, qc_positions, 3)
+  corrected <- correct_qcs(qcs, qc_positions, w)
   ratios <- numeric(length(qcs)-1)
   for (i in 1:length(ratios)) {
     ratios[i] <- corrected[i]/corrected[i+1]
@@ -145,10 +145,10 @@ graph_qc_correction <- function(r){
   row <- dataset[r,]
   data <- as.numeric(row[3:qcstart-1])
   qcs <- as.numeric(row[qcstart:length(row)])
-  plot(qcpositions, qcs, col="black", pch=19)
-  points(qcpositions, gross_correct(qcs), col="red", pch=19)
-  points(qcpositions, correct_qcs(qcs, qcpositions, 5), col="green", pch=19)
-  points(qcpositions, correct_qcs(gross_correct(qcs), qcpositions, 5), col="blue", pch=19)
+  plot(qc_positions, qcs, col="black", pch=19)
+  points(qc_positions, gross_correct(qcs), col="red", pch=19)
+  points(qc_positions, correct_qcs(qcs, qc_positions, 5), col="green", pch=19)
+  points(qc_positions, correct_qcs(gross_correct(qcs), qc_positions, 5), col="blue", pch=19)
   points(sample_positions, data)
 }
 
@@ -161,8 +161,8 @@ graph_rsds <- function(){
     qcs <- as.numeric(row[qcstart:length(row)])
     # c_row <- combined_dataset[r,]
     # combined <- as.numeric(c_row[2:length(c_row)])
-    # corrected <- correct_qcs(combined, qcpositions, w)
-    corrected <- correct_qcs(qcs, qcpositions, w)
+    # corrected <- correct_qcs(combined, qc_positions, w)
+    corrected <- correct_qcs(qcs, qc_positions, w)
     return(relative_standard_deviation(corrected))
     })
   # print(rsds)
@@ -188,15 +188,15 @@ test_normalize_with_gross_correction <- function(r){
     })
   
   # combined_with_corrected_qcs <- sapply(1:length(combined), function(i){
-  #   if (i %in% qcpositions){
-  #     return(corrected[match(i, qcpositions)])
+  #   if (i %in% qc_positions){
+  #     return(corrected[match(i, qc_positions)])
   #   }
   #   else return(data[i])
   # })
-  corrected <- correct_qcs(qcs, qcpositions, 5)
+  corrected <- correct_qcs(qcs, qc_positions, 5)
   
-  normalized <- normalize(data, qcs, betweens, qcpositions, sample_positions, w)
-  corrected_normalized <- normalize(data, corrected, betweens, qcpositions, sample_positions, w)
+  normalized <- normalize(data, qcs, betweens, qc_positions, sample_positions, w)
+  corrected_normalized <- normalize(data, corrected, betweens, qc_positions, sample_positions, w)
   par(mfrow=c(1,1))
   nrsd <- relative_standard_deviation(normalized)
   cnrsd <- relative_standard_deviation(corrected_normalized)
@@ -250,7 +250,7 @@ test_gross_correction_ratios <- function(){
     for(i in 1:n){
       corrected_qcs <- gross_correct(corrected_qcs)
     }
-    corrected_qcs <- correct_qcs(corrected_qcs, qcpositions, 5)
+    corrected_qcs <- correct_qcs(corrected_qcs, qc_positions, 5)
     return(get_ratios(corrected_qcs))
   })
   fixed <- mapply(function(r, cr) return(abs(1-cr) <= abs(1-r)), ratios, corrected_ratios)
