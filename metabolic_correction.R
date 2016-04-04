@@ -1,9 +1,41 @@
+#' Normalizes metabolite data
+#' 
+#' Normalizes the intensity values of metabolite samples using the Virtual-QC method for systematic error correction
+#'
+#' @param samples a vector of the samples to be corrected
+#' @param qcs a vector of the QCs to be used in correction
+#' @param betweens a vector of which QCs the sample at position i is between; 
+#'        i.e. a sample i between QCs 1-2 will have the value 1 in this vector
+#' @param qcpositions a vector of the positions of each QC in the overall data
+#' @param sample_positions a vector of the positions of each sample in the overall data
+#' @param w the number of adjacent QCs to use in creating the regression line for each sample in the Virtual-QC method
+#'
+#' @return A vector of normalized intensity values
+#' @export
+#'
+#' @examples
 normalize <- function(samples, qcs, betweens, qcpositions, sample_positions, w){
   normalized <- mapply(sys_correct, samples, betweens, sample_positions, 
                        MoreArgs=list(qcs=qcs, qcpositions=qcpositions, sample_positions, w=w))
   return(normalized)
 }
 
+#' Systematically corrects a metabolite sample
+#' 
+#' Systematically corrects the intensity value of a metabolite sample using the Virtual-QC method
+#'
+#' @param sample the sample to be corrected
+#' @param between the QC number which this sample comes after in the overall ordering
+#' @param i the sample's position in the overall ordering
+#' @param qcs a vector of the QCs to be used in correction
+#' @param qcpositions a vector of the positions of each QC in the overall data
+#' @param sample_positions a vector of the positions of each sample in the overall data
+#' @param w the number of adjacent QCs to use in creating the regression line for each sample in the Virtual-QC method
+#'
+#' @return A normalized intensity value
+#' @export
+#'
+#' @examples
 sys_correct <- function(sample, between, i, qcs, qcpositions, sample_positions, w){
   from <- max(1, between - (w %/% 2) + 1)
   to <- min(between + (w %/% 2), length(qcs))
@@ -12,6 +44,20 @@ sys_correct <- function(sample, between, i, qcs, qcpositions, sample_positions, 
   return(corrected)
 }
 
+#' Calculates a correction factor
+#' 
+#' Calculates a correction factor to use for correcting an intensity value in the Virtual-QC method
+#'
+#' @param qcs a vector of the QCs to be used in correction
+#' @param qcpositions a vector of the positions of each QC in the overall data
+#' @param from the smallest QC index to be considered in the regression line
+#' @param to the largest QC index to be considered in the regression line
+#' @param i the sample's position in the overall ordering
+#'
+#' @return The correction factor for sample i
+#' @export
+#'
+#' @examples
 get_correction_factor <- function(qcs, qcpositions, from, to, i){
   regression <- lm(qcs[from:to] ~ qcpositions[from:to])
   a <- regression$coefficients[[2]]
@@ -25,17 +71,36 @@ get_correction_factor <- function(qcs, qcpositions, from, to, i){
 #   return(corrected)
 # }
 
+#' Corrects QCs using regression lines
+#' 
+#' Corrects QC intensity values by creating regression lines of w adjacent QCs 
+#'   and adjusting them to lie on those lines
+#'
+#' @param qcs the vector of QCs to be corrected
+#' @param qcpositions a vector of the positions of each QC in the overall data
+#' @param w the number of adjacent QCs to use in the regression line
+#'
+#' @return A vector of corrected QC intensity values
+#' @export
+#'
+#' @examples
 correct_qcs <- function(qcs, qcpositions, w){
   corrected <- sapply(1:length(qcs), correct_qc, qcs, qcpositions, w)
   return(corrected)
 }
 
-# correct_qc <- function(i, combined_data, qcpositions, w){
+#' Title
+#'
+#' @param i the index of the QC to be corrected
+#' @param qcs the vector of QCs to be corrected
+#' @param qcpositions a vector of the positions of each QC in the overall data
+#' @param w the number of adjacent QCs to use in the regression line
+#'
+#' @return The corrected intensity value for QC i
+#' @export
+#'
+#' @examples
 correct_qc <- function(i, qcs, qcpositions, w){
-  
-  # qcpositions is overall position of qc in data
-  # i is qc #
-  # w is window size
   
   #TODO: this logic is stupid, make it better
   # index of QCs in overall data
@@ -95,6 +160,16 @@ correct_qc <- function(i, qcs, qcpositions, w){
   return(corrected)
 }
 
+#' Corrects gross error in QCs
+#' 
+#' Corrects gross error in QC intensity values by multiplying by the ratios of two adjacent QCs
+#'
+#' @param qcs the vector of QCs to be corrected
+#'
+#' @return a vector of corrected QC intensity values
+#' @export
+#'
+#' @examples
 gross_correct <- function(qcs){
   rsd <- relative_standard_deviation(qcs)
   # print(paste("RSD", rsd))
@@ -138,13 +213,33 @@ gross_correct <- function(qcs){
   return(qcs)
 }
 
-relative_standard_deviation<- function(qcs){
-  qc_mean = mean(qcs)
-  stand_dev <- sd(qcs)
-  rsd <- stand_dev / qc_mean
+#' Calculates relative standard deviation
+#' 
+#' Calculates the relative standard deviation (standard deviation/mean) of a vector of values
+#'
+#' @param nums a vector of values
+#'
+#' @return The relative standard deviation of the values
+#' @export
+#'
+#' @examples
+relative_standard_deviation<- function(nums){
+  n_mean = mean(nums)
+  stand_dev <- sd(nums)
+  rsd <- stand_dev / n_mean
   return(rsd)
 }
 
+#' Calculates ratios between QCs
+#' 
+#' Calculates the ratios between each adjacent pair of QC values, i.e. (QCi/QCi+1, QCi+1/QCi+2...)
+#'
+#' @param qcs a vector of QCs of size n
+#'
+#' @return A vector of ratios of size n-1
+#' @export
+#'
+#' @examples
 get_ratios <- function(qcs){
   ratios <- sapply(1:(length(qcs)-1), function(i){
     return(qcs[i]/qcs[i+1])
