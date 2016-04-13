@@ -147,12 +147,14 @@ regression_correct_qc <- function(i, qcs, qc_positions, w){
 #' 
 #' Corrects gross error in QC intensity values by multiplying by the ratios of 
 #' two adjacent QCs. Values which produce rations that fall outside the range of
-#' 1 +- cutoff will be considered extreme outliers and replaced by the average
+#' 1 +- cutoff will be considered extreme outliers and replaced by the average 
 #' of their neighbors
 #' 
 #' @param qcs the vector of QCs to be corrected
-#' @param cutoff the distance from 1 at which point a ratio will be considered
-#'   an outlier
+#' @param cutoff_min the value which any QCs lower than it will be considered
+#'   outliers
+#' @param cutoff_max the value which any QCs greater than it will be considered
+#'   outliers
 #'   
 #' @return a vector of corrected QC intensity values
 #' @export
@@ -205,58 +207,9 @@ ratio_gross_correct <- function(qcs, cutoff_min=.75, cutoff_max=1.25){
     corrected[length(corrected)] <- avg_corrected_n
     corrected[length(corrected)-1] <- avg_corrected_n1
   }
+  # if the RSD somehow got worse, reject the change
   if (relative_standard_deviation(corrected) <= relative_standard_deviation(qcs)){
     return(corrected)
-  }
-  # if the RSD got worse, reject the change
-  return(qcs)
-}
-
-old_ratio_correct <- function(qcs, cutoff=.25){
-  rsd <- relative_standard_deviation(qcs)
-  # Samples with an RSD greater than 20% need to be corrected further
-  if (rsd > .2){
-    corrected <- qcs
-    ratios <- get_ratios(corrected)
-    lapply(1:(length(corrected)-2), function(i){
-
-
-      if (abs(ratios[i] - 1) > cutoff){
-        corrected[i+1] <<- mean(c(corrected[i], corrected[i+2]))
-      }
-      else {
-        avg_correction <- mean(c(ratios[i], ratios[i+1]))
-        ai_corrected <- corrected[i+1] * avg_correction
-        ai1_corrected <- corrected[i+2] * avg_correction
-        corrected_ratio <-ai_corrected / ai1_corrected
-        # if this ratio is closer to 1 than ratios[i], keep it
-        if (abs(1-corrected_ratio) < abs(1-ratios[i])){
-          corrected[i] <<- ai_corrected #needs to modify array in outer scope, so <<-
-          corrected[i+1] <<- ai1_corrected
-        }
-      }
-
-    })
-
-    # check if the last qc is past the cutoff
-    if (abs(ratios[length(ratios)] - 1) > cutoff){
-      corrected[length(corrected)] <<- mean(c(corrected[length(corrected)-1],
-                                                     corrected[length(corrected)-2]))
-    }
-
-    # fix the last two qcs
-    avg_correction <- mean(c(ratios[length(ratios)], ratios[length(ratios)-1]))
-    an_corrected <- corrected[length(corrected)] * avg_correction
-    an1_corrected <- corrected[length(corrected)-1] * avg_correction
-    corrected_ratio <- an_corrected / an1_corrected
-    if (abs(1-corrected_ratio) < abs(1-ratios[length(ratios)])){
-      corrected[length(corrected)] <- an_corrected
-      corrected[length(corrected)-1] <- an1_corrected
-    }
-    # new_rsd <- relative_standard_deviation(corrected)
-    # if (new_rsd <= rsd){
-      return(corrected)
-    # }
   }
   return(qcs)
 }
