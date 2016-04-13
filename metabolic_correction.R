@@ -45,7 +45,7 @@ sys_correct <- function(sample, i, qcs, qc_positions, w){
   from <- max(1, after_qc - (w %/% 2) + 1)
   to <- min(after_qc + (w %/% 2), length(qcs))
   cf <- get_correction_factor(qcs, qc_positions, from, to, i)
-  corrected <- sample / cf
+  corrected <- (sample^2) / cf
   return(corrected)
 }
 
