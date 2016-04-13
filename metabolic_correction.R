@@ -162,56 +162,65 @@ regression_correct_qc <- function(i, qcs, qc_positions, w){
 #' @examples
 ratio_gross_correct <- function(qcs, cutoff_min=.75, cutoff_max=1.25){
   
-  rsd <- relative_standard_deviation(qcs)
-  # no need to correct further
-  if (rsd < .2){
-    return(qcs)
-  }
   corrected <- qcs
   ratios <- get_ratios(corrected)
-  for (i in 1:(length(corrected)-2)){
-    # if the ratio is past the cutoff, QCi+1 is an outlier and should be replaced
-    # by the average of QCi and QCi+2
-    if (ratios[i] < cutoff_min | ratios[i] > cutoff_max){
-      # print(paste("qc", i+1, qcs[i], "/", qcs[i+1], "=", ratios[i],"->", "mean(",corrected[i],
-      #             corrected[i+1], ")",mean(c(corrected[i], corrected[i+2]))))
-      corrected[i+1] <- mean(c(corrected[i], corrected[i+2]))
-    }
-    else {
-      # calculate the average of ratios R_i_i+1 and R_i+1_i+2
-      avg_correction <- mean(c(ratios[i], ratios[i+1]))
-      avg_corrected_i <- corrected[i+1] * avg_correction
-      avg_corrected_i1 <- corrected[i+2] * avg_correction
-      # if the ratio of the corrected QCs is better, replace the old QCs with them
-      avg_corrected_ratio <- avg_corrected_i / avg_corrected_i1
-      if (abs(1 - avg_corrected_ratio) < abs(1 - ratios[i])){
-        corrected[i] <- avg_corrected_i
-        corrected[i+1] <- avg_corrected_i1
+  ratios_within_five_percent <- get_ratios_within_five_percent(ratios)
+  
+  # do correction until the ratios aren't getting any better
+  # t <- 1
+  repeat{
+    # print(t)
+    # t <- t+1
+    for (i in 1:(length(corrected)-2)){
+      # if the ratio is past the cutoff, QCi+1 is an outlier and should be replaced
+      # by the average of QCi and QCi+2
+      if (ratios[i] < cutoff_min | ratios[i] > cutoff_max){
+        # print(paste("qc", i+1, qcs[i], "/", qcs[i+1], "=", ratios[i],"->", "mean(",corrected[i],
+        #             corrected[i+1], ")",mean(c(corrected[i], corrected[i+2]))))
+        corrected[i+1] <- mean(c(corrected[i], corrected[i+2]))
+      }
+      else {
+        # calculate the average of ratios R_i_i+1 and R_i+1_i+2
+        avg_correction <- mean(c(ratios[i], ratios[i+1]))
+        avg_corrected_i <- corrected[i+1] * avg_correction
+        avg_corrected_i1 <- corrected[i+2] * avg_correction
+        # if the ratio of the corrected QCs is better, replace the old QCs with them
+        avg_corrected_ratio <- avg_corrected_i / avg_corrected_i1
+        if (abs(1 - avg_corrected_ratio) < abs(1 - ratios[i])){
+          corrected[i] <- avg_corrected_i
+          corrected[i+1] <- avg_corrected_i1
+        }
       }
     }
+    
+    # check if the last ratio is past the cutoff, and if so replace the last QCn
+    # with the average of QCn-1 and QCn-2
+    if (ratios[length(ratios)] < cutoff_min | ratios[length(ratios)] > cutoff_max){
+      corrected[length(corrected)] <- mean(c(corrected[length(corrected)-1],
+                                             corrected[length(corrected)-2]))
+    }
+    
+    # for the last two QCs QCn and QCn-1, use the ratios R_n-2_n-1 and R_n-1_n
+    avg_correction <- mean(c(ratios[length(ratios)-1], ratios[length(ratios)]))
+    avg_corrected_n <- corrected[length(corrected) - 1] * avg_correction
+    avg_corrected_n1 <- corrected[length(corrected) - 2] * avg_correction
+    avg_corrected_ratio <- avg_corrected_n / avg_corrected_n1
+    if (abs(1 - avg_corrected_ratio) < abs(1 - ratios[length(ratios)])){
+      corrected[length(corrected)] <- avg_corrected_n
+      corrected[length(corrected)-1] <- avg_corrected_n1
+    }
+    
+    # if we're still seeing improvement, keep going
+    ratios <- get_ratios(corrected)
+    new_ratios_within_five_percent <- get_ratios_within_five_percent(ratios)
+    if (new_ratios_within_five_percent > ratios_within_five_percent){
+      ratios_within_five_percent <- new_ratios_within_five_percent
+      next
+    }
+    break
   }
   
-  # check if the last ratio is past the cutoff, and if so replace the last QCn
-  # with the average of QCn-1 and QCn-2
-  if (ratios[length(ratios)] < cutoff_min | ratios[length(ratios)] > cutoff_max){
-    corrected[length(corrected)] <- mean(c(corrected[length(corrected)-1],
-                                         corrected[length(corrected)-2]))
-  }
-  
-  # for the last two QCs QCn and QCn-1, use the ratios R_n-2_n-1 and R_n-1_n
-  avg_correction <- mean(c(ratios[length(ratios)-1], ratios[length(ratios)]))
-  avg_corrected_n <- corrected[length(corrected) - 1] * avg_correction
-  avg_corrected_n1 <- corrected[length(corrected) - 2] * avg_correction
-  avg_corrected_ratio <- avg_corrected_n / avg_corrected_n1
-  if (abs(1 - avg_corrected_ratio) < abs(1 - ratios[length(ratios)])){
-    corrected[length(corrected)] <- avg_corrected_n
-    corrected[length(corrected)-1] <- avg_corrected_n1
-  }
-  # if the RSD somehow got worse, reject the change
-  if (relative_standard_deviation(corrected) <= relative_standard_deviation(qcs)){
-    return(corrected)
-  }
-  return(qcs)
+  return(corrected)
 }
 
 #' Calculates relative standard deviation
@@ -248,4 +257,17 @@ get_ratios <- function(qcs){
     return(qcs[i]/qcs[i+1])
   })
   return(ratios)
+}
+
+#' Calculates the amount of ratios between .95 and 1.05
+#'
+#' @param ratios a vector of ratios to check
+#'
+#' @return The total number of ratios between .95 and 1.05
+#' @export
+#'
+#' @examples
+get_ratios_within_five_percent <- function(ratios){
+  within_five <- sum(ratios <= 1.05 & ratios >= .95)
+  return(within_five)
 }
