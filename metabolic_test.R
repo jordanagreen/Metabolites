@@ -10,6 +10,12 @@ get_data_and_qcs <- function(r){
   return(row[2:length(row)])
 }
 
+get_qc_vector <- function(i){
+  colnum <- qcstart + i - 1
+  qcs <- as.numeric(dataset[,colnum])
+  return(qcs)
+}
+
 testrow <- function(r){
   row <- dataset[r,]
   data <- as.numeric(row[3:qcstart-1])

@@ -164,12 +164,14 @@ ratio_gross_correct <- function(qcs, cutoff_min=.75, cutoff_max=1.25){
   
   corrected <- qcs
   ratios <- get_ratios(corrected)
+  # print(corrected[1])
+  # print(ratios)
   ratios_within_five_percent <- get_ratios_within_five_percent(ratios)
   
   # do correction until the ratios aren't getting any better
   t <- 1
   repeat{
-    print(t)
+    # print(t)
     t <- t+1
     # for (i in 1:10){
       # correct QCs 2 to n-1, going forward

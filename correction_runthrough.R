@@ -1,37 +1,44 @@
 dataset <- read.csv("dataset.csv", header=F)
+dataset2 <- read.csv("dataset-2.csv", header=F)
 pca_dataset <- read.csv("pca-dataset.csv", header=T, row.names=1)
+pca_dataset_2 <- read.csv("pca-dataset-2.csv", header=T, row.names=1)
+cor_pca_dataset_2 <- read.csv("pca-dataset-2-corrected.csv", header=T, row.names=1)
 qcstart <- 80
-qc_positions <- c(1, 12, 23, 34, 43, 44, 55, 66, 77, 88)
+qcstart2 <- 81
+qcpositions <- c(1, 12, 23, 34, 43, 44, 55, 66, 77, 88)
+qcpositions2 <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 22, 33, 44, 55, 66, 77, 88, 98)
 
-run <- function(){
+run <- function(d, start, qcpos){
   w <- 5
   n <- 20
   
   # original
-  original_qcs <- lapply(1:nrow(dataset), get_qcs_by_metabolite)
-  samples <- lapply(1:nrow(dataset), get_metabolite_data)
-  plot_rsds_and_save(original_qcs, "corrected-0a-original")
+  original_qcs <- lapply(1:nrow(d), get_qcs_by_metabolite, d=d, start=start)
+  samples <- lapply(1:nrow(d), get_metabolite_data, d=d, start=start)
+  # plot_rsds_and_save(original_qcs, "corrected-0a-original")
   
   corrected_qcs <- original_qcs
-  
 
-  
   # ratio gross correct
   for (i in 1:n){
-    corrected_qcs <- lapply(corrected_qcs, ratio_gross_correct)
+    corrected_qcs <- lapply(1:length(corrected_qcs), function(i) {
+      # print(corrected_qcs[[i]])
+      return(ratio_gross_correct(corrected_qcs[[i]]))
+    })
     # plot_rsds_and_save(corrected_qcs, paste("corrected", i, sep="-"))
-    print(paste("Done with correction", i))
+    # print(paste("Done with correction", i))
   }
+  return(corrected_qcs)
   
   # regression gross correct
   corrected_qcs <- lapply(corrected_qcs, regression_gross_correct,
-                          w=w, qc_positions=qc_positions)
+                          w=w, qc_positions=qcpos)
   return(corrected_qcs)
   
   # plot_rsds_and_save(corrected_qcs, paste("corrected", n+1, sep=""))
   
   old_normalized <- mapply(normalize, samples, original_qcs, 
-                           MoreArgs=list(qc_positions=qc_positions, w=w), 
+                           MoreArgs=list(qc_positions=qcpos, w=w), 
                            SIMPLIFY=FALSE)
   
   # normalize data with corrected QCs
@@ -66,36 +73,37 @@ run <- function(){
   # fixed_rsds <- mapply(function(o, c) return(o > c), original_rsds, corrected_rsds)
   # print(paste(sum(fixed_rsds), "/", length(fixed_rsds), "RSDs improved"))
   # 
-  return(lapply(corrected_qcs, get_ratios))
+  # return(lapply(corrected_qcs, get_ratios))
 }
 
-get_qcs_by_metabolite <- function(i){
-  row <- dataset[i,]
-  qcs <- as.numeric(row[qcstart:length(row)])
+get_qcs_by_metabolite <- function(i, d, start){
+  row <- d[i,]
+  qcs <- as.numeric(row[start:length(row)])
   return(qcs)
 }
 
-get_all_qcs <- function(){
-  return(lapply(1:nrow(dataset), get_qcs_by_metabolite))
+get_all_qcs <- function(d, start){
+  return(lapply(1:nrow(d), get_qcs_by_metabolite, d=d, start=start))
 }
 
-get_metabolite_data <- function(i){
-  row <- dataset[i,]
-  data <- as.numeric(row[2:(qcstart-1)])
+get_metabolite_data <- function(i, d, start){
+  row <- d[i,]
+  # print(row[2])
+  data <- as.numeric(row[2:(start-1)])
   return(data)
 }
 
-get_all_metabolites <- function(){
-  return(as.data.frame(sapply(1:nrow(dataset), get_metabolite_data)))
+get_all_metabolites <- function(d, start){
+  return(t(as.data.frame(sapply((1:nrow(d)), get_metabolite_data, start=start, d=d))))
 }
 
-get_all_data_by_row <- function(i){
-  row <- dataset[i,]
+get_all_data_by_row <- function(d, i){
+  row <- d[i,]
   return(as.numeric(row[2:length(row)]))
 }
 
-get_all_data <- function(){
-  all_data <- dataset
+get_all_data <- function(d){
+  all_data <- d
   return(all_data)
 }
 
@@ -117,8 +125,8 @@ plot_rsds_and_save <- function(qcs, f=""){
   dev.off()
 }
 
-get_all_ratios <- function(){
-  qcs <- lapply(1:nrow(dataset), get_qcs_by_metabolite)
+get_all_ratios <- function(d, start){
+  qcs <- lapply(1:nrow(d), get_qcs_by_metabolite, d=d, start=start)
   ratios <- unlist(lapply(qcs, get_ratios))
   return(ratios)
 }
@@ -149,4 +157,12 @@ correct_dataset <- function(d){
     d[,i] <- normalized[,i]
   }
   return(d)
+}
+
+plot_correction <- function(i){
+  qcs <- get_qcs_by_metabolite(i)
+  plot(qcpositions, qcs, xlab="Order of Injection", ylab="Intensity")
+  # title(main="Example of QC Correction")
+  points(qcpositions, regression_gross_correct(ratio_gross_correct(qcs), qcpositions, 5), col="blue", pch=19)
+  # legend("bottomleft", c("Original", "Corrected"), pch=c(1,19), col=c("black", "blue"))
 }
